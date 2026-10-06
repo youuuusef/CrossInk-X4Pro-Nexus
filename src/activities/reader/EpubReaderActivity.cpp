@@ -7241,6 +7241,43 @@ void EpubReaderActivity::prepareCurrentSectionForRelayout() {
   cacheCurrentSectionPosition();
 }
 
+std::string EpubReaderActivity::findTappedEpubImage(const int touchX, const int touchY) {
+#if CROSSINK_APP_CAP_TOUCH
+  if (!section || section->currentPage < 0 || section->currentPage >= static_cast<int>(section->pageCount)) {
+    return {};
+  }
+
+  auto page = section->loadPage(section->currentPage);
+  if (!page) {
+    return {};
+  }
+
+  const ReaderViewportLayout layout = computeReaderViewportLayout(renderer, automaticPageTurnActive);
+
+  for (const auto& element : page->elements) {
+    if (!element || element->getTag() != TAG_PageImage) {
+      continue;
+    }
+
+    const auto* pageImage = static_cast<const PageImage*>(element.get());
+    const auto& imageBlock = pageImage->getImageBlock();
+
+    const int imageX = element->xPos + layout.marginLeft;
+    const int imageY = element->yPos + layout.marginTop;
+    const int imageWidth = imageBlock.getWidth();
+    const int imageHeight = imageBlock.getHeight();
+
+    if (touchX >= imageX && touchX < imageX + imageWidth &&
+        touchY >= imageY && touchY < imageY + imageHeight) {
+      return imageBlock.getImagePath();
+    }
+  }
+#endif
+
+  return {};
+}
+
+
 bool EpubReaderActivity::renderContents(std::unique_ptr<Page> page, const int fontId, const int orientedMarginTop,
                                         const int orientedMarginRight, const int orientedMarginBottom,
                                         const int orientedMarginLeft, const bool updatePanel) {
