@@ -42,6 +42,7 @@
 #include "EpubReaderFootnoteSelectActivity.h"
 #include "EpubReaderFootnotesActivity.h"
 #include "EpubReaderPercentSelectionActivity.h"
+#include "EpubImageViewerActivity.h"
 #include "EpubReaderUtils.h"
 #include "FocusReadingText.h"
 #include "GlobalActions.h"
@@ -2832,6 +2833,21 @@ void EpubReaderActivity::loop() {
 
   const auto touch = ReaderUtils::detectTouchPageTurn(renderer, mappedInput,
                                                       epub && ReaderUtils::isRtlBookLanguage(epub->getLanguage()));
+
+#if CROSSINK_APP_CAP_TOUCH
+  if (touch.tapped && !RenderLock::peek()) {
+    const std::string imagePath = findTappedEpubImage(touch.x, touch.y);
+    if (!imagePath.empty()) {
+      startActivityForResult(
+          std::make_unique<EpubImageViewerActivity>(renderer, mappedInput, imagePath),
+          [this](const ActivityResult&) {
+            requestUpdate();
+          });
+      return;
+    }
+  }
+#endif
+ 
   const int bottomTapHeight =
       automaticPageTurnActive
           ? std::max(UITheme::getStatusBarHeight(),
